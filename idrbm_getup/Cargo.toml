@@ -1,0 +1,11 @@
+[package]
+name = "idrbm_getup"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+bumpalo = { version = "3.20.2", features = ["allocator-api2", "collections"] }
+clap = { version = "4.6.0", features = ["derive"] }
+hashbrown = { version = "0.16.1", features = ["allocator-api2"] }
+reqwest = "0.13.2"

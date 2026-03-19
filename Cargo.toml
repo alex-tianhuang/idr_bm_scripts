@@ -1,2 +1,2 @@
 [workspace]
-members = ["idrbm_core"]
+members = ["idrbm_core", "idrbm_getup"]
