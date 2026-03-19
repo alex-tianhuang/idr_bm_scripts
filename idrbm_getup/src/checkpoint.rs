@@ -1,3 +1,4 @@
+//! Module defining [`Checkpoint`].
 use anyhow::{Context, Error};
 use bumpalo::Bump;
 use hashbrown::{DefaultHashBuilder, HashSet};
