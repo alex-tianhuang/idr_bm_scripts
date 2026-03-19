@@ -627,6 +627,7 @@ dependencies = [
  "bumpalo",
  "clap",
  "hashbrown",
+ "idrbm_core",
  "reqwest",
 ]
 
