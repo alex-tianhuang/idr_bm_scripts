@@ -7,6 +7,7 @@ use std::{mem::ManuallyDrop, path::Path};
 /// A set of headers that are already in the
 /// output FASTA file.
 pub struct Checkpoint<'a> {
+    // No need to de-allocate because the memory is owned by the arena.
     inner: ManuallyDrop<HashSet<&'a str, DefaultHashBuilder, &'a Bump>>,
 }
 impl<'a> Checkpoint<'a> {
