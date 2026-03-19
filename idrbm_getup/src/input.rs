@@ -4,7 +4,7 @@ use bumpalo::{Bump, collections::Vec};
 use idrbm_core::utils::{leak_vec, read_file};
 use std::path::Path;
 /// Read the input file of Uniprot IDs (one per line).
-pub fn read_ids<'a>(path: &Path, arena: &'a Bump) -> Result<&'a [&'a str], Error> {
+pub fn read_ids<'a>(path: &Path, arena: &'a Bump) -> Result<&'a mut [&'a str], Error> {
     let contents = leak_vec(read_file(path, arena)?);
     let mut lines = Vec::new_in(arena);
     for line in contents
