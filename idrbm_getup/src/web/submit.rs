@@ -1,3 +1,6 @@
+//! Module defining [`submit`], a function which
+//! submits and polls a job to completion at
+//! `https://rest.uniprot.org/idmapping/...`.
 use anyhow::Error;
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::blocking::Client;
