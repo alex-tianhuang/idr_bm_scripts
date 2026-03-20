@@ -100,7 +100,7 @@ struct DetailsResponse<'a> {
 /// and return the response as bytes.
 fn get_details(client: &Client, job_id: &str) -> anyhow::Result<Vec<u8>> {
     let mut response = client
-        .get(format!("{}/idmapping/details/{}", API_URL, job_id))
+        .get(format!("{}/details/{}", API_URL, job_id))
         .send()?
         .error_for_status()?;
     let mut bytes = Vec::new();
