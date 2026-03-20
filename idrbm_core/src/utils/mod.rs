@@ -26,10 +26,11 @@ pub fn leak_str<'a>(s: bumpalo::collections::String<'a>) -> &'a mut str {
     //         are not de-allocated and reused by the arena.
     unsafe { std::mem::transmute::<&mut str, &'a mut str>(s.as_mut_str()) }
 }
+
 /// Workaround for box dyn stuff in a [`bumpalo::boxed::Box`].
 #[macro_export]
 macro_rules! box_dyn_in {
-    (Box::new_in($x:expr, $arena:expr) as Box<dyn $($tokens:tt)+>) => {
-        unsafe { bumpalo::boxed::Box::from_raw($arena.alloc($x) as &mut dyn $($tokens)+ as *mut dyn $($tokens)+) }
+    (Box::new_in($x:expr, $arena:expr) as Box<dyn $trait_:ident>) => {
+        unsafe { bumpalo::boxed::Box::from_raw($arena.alloc($x) as &mut dyn $trait_ as *mut dyn $trait_) }
     };
 }
