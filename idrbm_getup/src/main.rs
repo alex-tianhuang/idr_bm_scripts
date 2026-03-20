@@ -1,3 +1,5 @@
+//! A program used to get sequences from the Uniprot
+//! webservice online given a file of Uniprot IDs.
 use crate::{checkpoint::Checkpoint, input::read_ids};
 use anyhow::Error;
 use bumpalo::Bump;
