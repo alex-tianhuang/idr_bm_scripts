@@ -50,6 +50,10 @@ fn main() -> Result<(), Error> {
     let raw_ids = read_ids(&input_file, &arena)?;
     let checkpoint = Checkpoint::load_or_empty(&output_file, &arena)?;
     let ids = checkpoint.retain(raw_ids);
+    if ids.is_empty() {
+        eprintln!("exiting early because there are no Uniprot IDs to search for");
+        return Ok(())
+    }
     let enable_pbar = !(disable_pbar || quiet);
     let results_url = web::submit(ids, interval_retry, enable_pbar)?;
     let tokio = tokio::runtime::Builder::new_current_thread()
