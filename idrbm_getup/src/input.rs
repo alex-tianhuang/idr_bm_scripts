@@ -9,9 +9,9 @@ pub fn read_ids<'a>(path: &Path, arena: &'a Bump) -> Result<&'a mut [&'a str], E
     let mut lines = Vec::new_in(arena);
     for line in contents
         .split(|b| *b == b'\n')
-        .filter(|slice| !slice.is_empty())
+        .filter(|slice| !slice.trim_ascii().is_empty())
     {
-        let line = str::from_utf8(line).map_err(|e| {
+        let line = str::from_utf8(line.trim_ascii()).map_err(|e| {
             Error::msg(format!(
                 "non-UTF8 data in input file ({}): {}",
                 e,
