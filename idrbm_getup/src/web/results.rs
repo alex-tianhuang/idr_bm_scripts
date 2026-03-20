@@ -65,8 +65,8 @@ pub async fn results(
             // hopefully give `request` a chance to start before doing a bunch of deserialization
             yield_now().await;
             let results = <Vec<&RawValue>>::deserialize(results)?;
-            write_results(&mut file, &results, err_out).await?;
-            pbar.as_ref().map(|pbar| pbar.inc(results.len() as u64));
+            let num_successes = write_results(&mut file, &results, err_out).await?;
+            pbar.as_ref().map(|pbar| pbar.inc(num_successes as u64));
         }
     }
     pbar.as_ref().map(ProgressBar::abandon);
@@ -97,7 +97,8 @@ struct ResultsResponse<'a> {
     // Vec<&'a RawValue>
     results: &'a RawValue,
 }
-/// Write the given results to `file`.
+/// Write the given results to `file`, returning the number
+/// of entries successfully deserialized and written.
 /// 
 /// This function fails if `err_out` cannot be written to
 /// or if `file` cannot be written to.
@@ -108,7 +109,8 @@ async fn write_results(
     file: &mut tokio::fs::File,
     results: &[&RawValue],
     err_out: &mut dyn Write,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<usize> {
+    let mut num_successes = 0;
     let mut buf = Vec::new();
     for item in results.iter() {
         let parsed;
@@ -139,9 +141,10 @@ async fn write_results(
         }
         let (uniprot_id, sequence) = parsed;
         write!(&mut buf, ">{}\n{}\n", uniprot_id, sequence)?;
+        num_successes += 1;
     }
     file.write_all(&buf).await?;
-    Ok(())
+    Ok(num_successes)
 }
 /// Deserialize a [`RawValue`] into a `(uniprot_id, sequence)` pair.
 /// 
