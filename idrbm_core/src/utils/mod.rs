@@ -14,3 +14,11 @@ pub fn leak_vec<'a, T>(buf: bumpalo::collections::Vec<'a, T>) -> &'a mut [T] {
     //         are not de-allocated and reused by the arena.
     unsafe { std::mem::transmute::<&mut [T], &'a mut [T]>(buf.as_mut_slice()) }
 }
+
+/// Workaround for box dyn stuff in a [`bumpalo::boxed::Box`].
+#[macro_export]
+macro_rules! box_dyn_in {
+    (Box::new_in($x:expr, $arena:expr) as Box<dyn $($tokens:tt)+>) => {
+        unsafe { bumpalo::boxed::Box::from_raw($arena.alloc($x) as &mut dyn $($tokens)+ as *mut dyn $($tokens)+) }
+    };
+}
