@@ -52,7 +52,10 @@ fn main() -> Result<(), Error> {
     let ids = checkpoint.retain(raw_ids);
     let enable_pbar = !(disable_pbar || quiet);
     let results_url = web::submit(ids, interval_retry, enable_pbar)?;
-    smol::block_on(web::results(
+    let tokio = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?;
+    tokio.block_on(web::results(
         &output_file,
         &results_url,
         ids.len(),

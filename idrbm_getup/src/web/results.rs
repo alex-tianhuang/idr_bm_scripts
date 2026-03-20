@@ -7,7 +7,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::{Client, Response};
 use serde::Deserialize;
 use serde_json::value::RawValue;
-use smol::{future::yield_now, io::AsyncWriteExt, spawn};
+use tokio::{io::AsyncWriteExt, spawn, task::yield_now};
 use std::{fs::File, io::Write, path::{Path, PathBuf}};
 
 /// Helper function for callers of [`results`].
@@ -48,7 +48,7 @@ pub async fn results(
     enable_pbar: bool,
     err_out: &mut dyn Write,
 ) -> anyhow::Result<()> {
-    let mut file = smol::fs::OpenOptions::new()
+    let mut file = tokio::fs::OpenOptions::new()
         .append(true)
         .create(true)
         .open(output_path)
@@ -57,7 +57,7 @@ pub async fn results(
     let mut request = Some(spawn(client.get(results_url).send()));
     let pbar = enable_pbar.then(|| pbar(num_seqs_expected));
     while let Some(req) = request {
-        let response = req.await?.error_for_status()?;
+        let response = req.await??.error_for_status()?;
         let next_page_url = extract_next_page_url(&response);
         request = next_page_url.map(|url| spawn(client.get(url).send()));
         let bytes = response.bytes().await?;
@@ -105,7 +105,7 @@ struct ResultsResponse<'a> {
 /// The function will not fail due to any of the `RawValue`s
 /// failing to deserialize.
 async fn write_results(
-    file: &mut smol::fs::File,
+    file: &mut tokio::fs::File,
     results: &[&RawValue],
     err_out: &mut dyn Write,
 ) -> anyhow::Result<()> {
