@@ -1,15 +1,20 @@
-use std::{fs::File, path::Path, io::Read as _};
+use std::{fs::File, path::Path};
 use anyhow::Error;
 use bumpalo::{Bump, collections::Vec};
 
 /// Read the file at `path` into the given memory arena as a vector of bytes.
-///
+pub fn read_file<'a>(path: &Path, arena: &'a Bump) -> Result<Vec<'a, u8>, Error> {
+    let file = File::open(path)?;
+    let size_hint = file.metadata().map(|m| m.len() as usize).ok();
+    read_to_end(file, size_hint, arena)
+}
+/// Read a reader to the given memory arena as a vector of bytes.
+/// 
 /// Dev note
 /// --------
-/// Most of this function is ripped from [`std::io::default_read_to_end`].
-pub fn read_file<'a>(path: &Path, arena: &'a Bump) -> Result<Vec<'a, u8>, Error> {
-    let mut file = File::open(path)?;
-    let size_hint = file.metadata().map(|m| m.len() as usize).ok();
+/// Mostly ripped from [`std::io::default_read_to_end`].
+pub fn read_to_end<'a, R: std::io::Read>(mut reader: R, size_hint: Option<usize>, arena: &'a Bump) -> Result<Vec<'a, u8>, Error> {
+    
     let mut buf = Vec::with_capacity_in(size_hint.unwrap_or(0), arena);
     /// @tianh
     /// Maybe specific to the platform this was developed on,
@@ -39,7 +44,7 @@ pub fn read_file<'a>(path: &Path, arena: &'a Bump) -> Result<Vec<'a, u8>, Error>
 
     const PROBE_SIZE: usize = 32;
 
-    fn small_probe_read(r: &mut File, buf: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn small_probe_read<R: std::io::Read>(r: &mut R, buf: &mut Vec<u8>) -> std::io::Result<usize> {
         let mut probe = [0u8; PROBE_SIZE];
 
         loop {
@@ -63,7 +68,7 @@ pub fn read_file<'a>(path: &Path, arena: &'a Bump) -> Result<Vec<'a, u8>, Error>
     // @std::io
     // avoid inflating empty/small vecs before we have determined that there's anything to read
     if (size_hint.is_none() || size_hint == Some(0)) && buf.capacity() - buf.len() < PROBE_SIZE {
-        let read = small_probe_read(&mut file, &mut buf)?;
+        let read = small_probe_read(reader.by_ref(), &mut buf)?;
 
         if read == 0 {
             return Ok(buf);
@@ -79,7 +84,7 @@ pub fn read_file<'a>(path: &Path, arena: &'a Bump) -> Result<Vec<'a, u8>, Error>
             // and see if it returns `Ok(0)`. If so, we've avoided an
             // unnecessary doubling of the capacity. But if not, append the
             // probe buffer to the primary buffer and let its capacity grow.
-            let read = small_probe_read(&mut file, &mut buf)?;
+            let read = small_probe_read(reader.by_ref(), &mut buf)?;
 
             if read == 0 {
                 return Ok(buf);
@@ -102,7 +107,7 @@ pub fn read_file<'a>(path: &Path, arena: &'a Bump) -> Result<Vec<'a, u8>, Error>
             unsafe { std::slice::from_raw_parts_mut(buf.as_mut_ptr(), buf.capacity() - buf.len()) };
         let buf_len = std::cmp::min(spare.len(), max_read_size);
         spare = &mut spare[..buf_len];
-        let bytes_read = file.read(spare)?;
+        let bytes_read = reader.read(spare)?;
 
         // @tianh
         // SAFETY: yep
