@@ -1,15 +1,15 @@
-mod read_to_end;
-mod read_fasta;
-mod parse_regions;
+mod read_regions;
 mod parse_variants;
-pub use parse_regions::{ParseRegions, read_regions};
+mod read_fasta;
+mod read_to_end;
+pub use read_regions::read_regions;
 pub use parse_variants::ParseVariants;
-pub use read_to_end::{read_file, read_to_end};
 pub use read_fasta::read_fasta;
+pub use read_to_end::{read_file, read_to_end};
 
 /// Leak a [`bumpalo::collections::Vec`] managed by an arena into a slice
 /// that lives for as long as the arena does not reset.
-/// 
+///
 /// Analogue of [`std::vec::Vec::leak`].
 pub fn leak_vec<'a, T>(buf: bumpalo::collections::Vec<'a, T>) -> &'a mut [T] {
     let mut buf = std::mem::ManuallyDrop::new(buf);
@@ -21,7 +21,7 @@ pub fn leak_vec<'a, T>(buf: bumpalo::collections::Vec<'a, T>) -> &'a mut [T] {
 
 /// Leak a [`bumpalo::collections::String`] managed by an arena into a `str`
 /// that lives for as long as the arena does not reset.
-/// 
+///
 /// Analogue of [`std::string::String::leak`].
 pub fn leak_str<'a>(s: bumpalo::collections::String<'a>) -> &'a mut str {
     let mut s = std::mem::ManuallyDrop::new(s);
@@ -35,6 +35,8 @@ pub fn leak_str<'a>(s: bumpalo::collections::String<'a>) -> &'a mut str {
 #[macro_export]
 macro_rules! box_dyn_in {
     (Box::new_in($x:expr, $arena:expr) as Box<dyn $trait_:ident>) => {
-        unsafe { bumpalo::boxed::Box::from_raw($arena.alloc($x) as &mut dyn $trait_ as *mut dyn $trait_) }
+        unsafe {
+            bumpalo::boxed::Box::from_raw($arena.alloc($x) as &mut dyn $trait_ as *mut dyn $trait_)
+        }
     };
 }
