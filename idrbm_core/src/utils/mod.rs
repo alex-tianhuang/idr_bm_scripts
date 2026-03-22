@@ -1,5 +1,7 @@
 mod read_to_end;
 mod read_fasta;
+mod parse_regions;
+pub use parse_regions::ParseRegions;
 pub use read_to_end::{read_file, read_to_end};
 pub use read_fasta::read_fasta;
 
