@@ -37,4 +37,17 @@ impl RegionBounds {
     pub fn size(&self) -> usize {
         self.stop - self.start
     }
+    /// Utility method for checking that this regions
+    /// is within bounds of the given `seq`.
+    pub fn is_in_bounds_of(&self, seq: &aa_canonical_str) -> bool {
+        (seq.len() >= self.stop) && (seq.len() >= self.start)
+    }
+    /// Inclusive lower bound.
+    pub fn start(&self) -> usize {
+        self.start
+    }
+    /// Exclusive upper bound.
+    pub fn stop(&self) -> usize {
+        self.stop
+    }
 }
