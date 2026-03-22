@@ -44,7 +44,7 @@ fn main() -> anyhow::Result<()> {
             variant_sequence_buffer.extend(
                 sampler
                     .by_ref()
-                    .take(record.region_len())
+                    .take(record.region.size())
                     .map(|aa| *aa as u8 as char),
             );
             writer.write_record([record.protein_id, record.region_id, &variant_id, &variant_sequence_buffer])?;
