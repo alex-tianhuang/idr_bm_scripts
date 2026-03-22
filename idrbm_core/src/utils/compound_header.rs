@@ -10,7 +10,7 @@ pub struct CompoundHeaderWriter<const N: usize> {
     buf: Vec<u8>,
 }
 impl<const N: usize> CompoundHeaderWriter<N> {
-    pub fn new<const M: usize>() -> CompoundHeaderWriter<M> {
+    pub fn new() -> CompoundHeaderWriter<N> {
         CompoundHeaderWriter { buf: Vec::new() }
     }
     /// Get a header consisting of `parts` joined by the '|' character.
