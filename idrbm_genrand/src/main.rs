@@ -31,34 +31,23 @@ fn main() -> anyhow::Result<()> {
 
     let mut writer = csv::Writer::from_path(&output_file)?;
     writer.write_record(&["ProteinID", "RegionID", "VariantID", "Sequence"])?;
-    let mut row_buffer = [const { String::new() }; 4];
-    let mut variant_ids = (0..n).map(|i| i.to_string()).collect::<Vec<_>>();
+    let mut variant_sequence_buffer = String::new();
+    let variant_ids = (0..n).map(|i| i.to_string()).collect::<Vec<_>>();
 
     let rng = SmallRng::from_rng(&mut ThreadRng::default());
     let mut sampler = rng.sample_iter(Choose::new(&AMINOACIDS).unwrap());
 
     while let Some(notification) = reader.next(&mut record) {
         let record = notification?;
-        for (buf, src) in row_buffer
-            .iter_mut()
-            .zip([record.protein_id, record.region_id])
-        {
-            buf.clear();
-            buf.push_str(src);
-        }
-        for variant_id in variant_ids.iter_mut() {
-            let [.., variant_id_buffer, variant_sequence] = &mut row_buffer;
-            std::mem::swap(variant_id, variant_id_buffer);
-            variant_sequence.clear();
-            variant_sequence.extend(
+        for variant_id in variant_ids.iter() {
+            variant_sequence_buffer.clear();
+            variant_sequence_buffer.extend(
                 sampler
                     .by_ref()
                     .take(record.region_len())
                     .map(|aa| *aa as u8 as char),
             );
-            writer.write_record(&row_buffer)?;
-            let [.., variant_id_buffer, _] = &mut row_buffer;
-            std::mem::swap(variant_id, variant_id_buffer);
+            writer.write_record([record.protein_id, record.region_id, &variant_id, &variant_sequence_buffer])?;
         }
     }
     Ok(())
