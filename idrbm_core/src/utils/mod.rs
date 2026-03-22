@@ -1,9 +1,9 @@
 mod read_regions;
-mod parse_variants;
+mod read_variants;
 mod read_fasta;
 mod read_to_end;
 pub use read_regions::read_regions;
-pub use parse_variants::ParseVariants;
+pub use read_variants::read_variants;
 pub use read_fasta::read_fasta;
 pub use read_to_end::{read_file, read_to_end};
 

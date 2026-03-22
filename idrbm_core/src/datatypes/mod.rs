@@ -8,4 +8,4 @@ mod records;
 mod grouped;
 pub use sequences::{AAIndex, AAMap, AMINOACIDS, Aminoacid, FastaEntry, aa_canonical_str};
 pub use records::{RegionCsvRecord, VariantCsvRecord, RegionBounds};
-pub use grouped::Regions;
+pub use grouped::{Regions, Variants};
