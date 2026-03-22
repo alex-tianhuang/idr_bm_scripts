@@ -2,6 +2,8 @@ mod read_regions;
 mod read_variants;
 mod read_fasta;
 mod read_to_end;
+mod compound_header;
+pub use compound_header::CompoundHeaderWriter;
 pub use read_regions::read_regions;
 pub use read_variants::read_variants;
 pub use read_fasta::{read_fasta, read_fasta_to_map};
