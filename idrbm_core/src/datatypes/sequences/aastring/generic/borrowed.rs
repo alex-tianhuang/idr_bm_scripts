@@ -147,4 +147,8 @@ impl<'a, A: AALike> IntoIterator for &'a aa_str<A> {
         self.0.iter().copied()
     }
 }
-
+impl<A: AALike> std::fmt::Debug for aa_str<A> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.as_str().fmt(f)
+    }
+}
