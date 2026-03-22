@@ -4,7 +4,7 @@ mod read_fasta;
 mod read_to_end;
 pub use read_regions::read_regions;
 pub use read_variants::read_variants;
-pub use read_fasta::read_fasta;
+pub use read_fasta::{read_fasta, read_fasta_to_map};
 pub use read_to_end::{read_file, read_to_end};
 
 /// Leak a [`bumpalo::collections::Vec`] managed by an arena into a slice

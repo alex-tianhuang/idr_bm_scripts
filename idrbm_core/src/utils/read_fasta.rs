@@ -4,6 +4,7 @@ use crate::{
 };
 use anyhow::Error;
 use bumpalo::{Bump, collections::Vec};
+use hashbrown::{DefaultHashBuilder, HashMap};
 use std::{io::Write, path::Path};
 
 /// Read the file at `path` into a memory arena,
@@ -44,6 +45,48 @@ pub fn read_fasta<'a>(
         }
     }
     Ok(leak_vec(entries))
+}
+
+/// Read the file at `path` into a memory arena,
+/// and parse it into a hashmap of `(header, sequence)` pairs.
+///
+/// Report errors to `err_out`, much like using `stderr`.
+///
+/// Errors
+/// ------
+/// This function fails if:
+/// 1. The file at `path` cannot be read from.
+/// 2. If the file at `path` is empty or does not start with a `>` character.
+/// 3. If errors cannot be written to `err_out`.
+pub fn read_fasta_to_map<'a>(
+    path: &Path,
+    arena: &'a Bump,
+    err_out: &mut dyn Write,
+) -> Result<HashMap<&'a str, &'a aa_canonical_str, DefaultHashBuilder, &'a Bump>, Error> {
+    let bytes = read_file(path, arena)?;
+    if bytes.is_empty() {
+        return Err(Error::msg("got empty file"));
+    }
+    if !bytes.starts_with(&[b'>']) {
+        return Err(Error::msg(format!(
+            "expected fasta file starting with `>`, got `{}` character on first line",
+            bytes.get(0).unwrap()
+        )));
+    }
+    let mut entries = HashMap::new_in(arena);
+    for notification in parse_fasta_entries(leak_vec(bytes)) {
+        match notification {
+            Ok(entry) => {
+                if let Some(_) = entries.insert(entry.header, entry.sequence) {
+                    writeln!(err_out, "duplicate entry, evicting oldest: {}", entry.header)?;
+                }
+            }
+            Err(e) => {
+                writeln!(err_out, "{}", e)?;
+            }
+        }
+    }
+    Ok(entries)
 }
 /// Iterate over a buffer with FASTA-formatted sequences
 /// turned into [`FastaEntry`] structs, also returning parsing
