@@ -1,10 +1,44 @@
-//! Module defining [`ParseRegions`], for parsing
-//! a CSV of regions with four columns.
+//! Module defining [`ParseRegions`] and [`read_regions`],
+//! for parsing a CSV of regions with four columns.
 
+use std::{mem::ManuallyDrop, path::Path};
 use anyhow::Error;
+use bumpalo::{Bump, collections::Vec};
 use csv::{Reader, StringRecord};
+use hashbrown::HashMap;
 
-use crate::datatypes::RegionCsvRecord;
+use crate::datatypes::{RegionBounds, RegionCsvRecord, Regions};
+/// Read a [`Regions`] from a regions CSV at `path`.
+/// 
+/// All strings and arrays are allocated inside the given arena.
+pub fn read_regions<'a>(path: &Path, arena: &'a Bump) -> Result<Regions<'a>, Error> {
+    let contents = std::fs::read(path)?;
+    let mut reader = ParseRegions::new(&contents);
+    let mut record = StringRecord::new();
+
+    let local_arena = Bump::new();
+    let mut local_data = ManuallyDrop::new(HashMap::new_in(&local_arena));
+    while let Some(notification) = reader.next(&mut record) {
+        let record = notification?;
+        let group = match local_data.get_mut(record.protein_id) {
+            Some(group) => {
+                group
+            },
+            None => {
+                let protein_id = &*arena.alloc_str(record.protein_id);
+                local_data.try_insert(protein_id, Vec::new_in(&local_arena)).unwrap()
+            }
+        };
+        let region_id = &*arena.alloc_str(record.region_id);
+        group.push((region_id, record.region))
+    }
+    let mut data = HashMap::with_capacity_in(local_data.len(), arena);
+    for (protein_id, group) in local_data.iter() {
+        // SAFETY: keys are unique because they come from a map
+        unsafe { data.insert_unique_unchecked(*protein_id, &*arena.alloc_slice_copy(&group)) };
+    }
+    Ok(data)
+}
 /// Parser for regions CSV files.
 ///
 /// These files contain the columns:
@@ -67,9 +101,10 @@ impl<'a> ParseRegions<'a> {
         });
         let start = start?;
         let stop = stop?;
-        RegionCsvRecord::new(protein_id, region_id, start, stop).ok_or_else(|| {
+        let region = RegionBounds::new(start, stop).ok_or_else(|| {
             error(&"bad data, start >= stop", record, self.data)
-        })
+        })?;
+        Ok(RegionCsvRecord { protein_id, region_id, region })
     }
 }
 
