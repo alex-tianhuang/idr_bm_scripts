@@ -10,6 +10,12 @@ use hashbrown::HashMap;
 use crate::datatypes::{RegionBounds, RegionCsvRecord, Regions};
 /// Read a [`Regions`] from a regions CSV at `path`.
 /// 
+/// These files contain the columns:
+/// 1. ProteinID
+/// 2. RegionID
+/// 3. Start (number)
+/// 4. Stop (number)
+/// 
 /// All strings and arrays are allocated inside the given arena.
 pub fn read_regions<'a>(path: &Path, arena: &'a Bump) -> Result<Regions<'a>, Error> {
     let contents = std::fs::read(path)?;
@@ -40,13 +46,9 @@ pub fn read_regions<'a>(path: &Path, arena: &'a Bump) -> Result<Regions<'a>, Err
     Ok(data)
 }
 /// Parser for regions CSV files.
-///
-/// These files contain the columns:
-/// 1. ProteinID
-/// 2. RegionID
-/// 3. Start (number)
-/// 4. Stop (number)
-pub struct ParseRegions<'a> {
+/// 
+/// Helper struct for [`read_regions`].
+struct ParseRegions<'a> {
     data: &'a [u8],
     inner: Reader<&'a [u8]>,
 }
