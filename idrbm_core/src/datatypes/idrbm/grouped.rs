@@ -4,8 +4,9 @@
 use crate::datatypes::{RegionBounds, aa_canonical_str};
 use bumpalo::Bump;
 use hashbrown::DefaultHashBuilder;
-
 /// Collections of stuff, grouped by protein ID.
+/// 
+/// Essentially an arena-allocated ordered map.
 /// 
 /// `order` must contain all keys of `mapping`.
 /// Failure to do this results in runtime panics
