@@ -738,6 +738,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "idrbm_filtzsc"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bumpalo",
+ "clap",
+ "csv",
+ "hashbrown 0.16.1",
+ "idrbm_core",
+]
+
+[[package]]
 name = "idrbm_genrand"
 version = "0.1.0"
 dependencies = [
