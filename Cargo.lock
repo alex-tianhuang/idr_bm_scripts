@@ -722,6 +722,7 @@ dependencies = [
  "anyhow",
  "bumpalo",
  "csv",
+ "hashbrown 0.16.1",
 ]
 
 [[package]]
@@ -729,10 +730,21 @@ name = "idrbm_genrand"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bumpalo",
  "clap",
  "csv",
  "idrbm_core",
  "rand 0.10.0",
+]
+
+[[package]]
+name = "idrbm_gensubs"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bumpalo",
+ "clap",
+ "idrbm_core",
 ]
 
 [[package]]

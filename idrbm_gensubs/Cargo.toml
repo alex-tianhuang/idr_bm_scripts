@@ -1,0 +1,10 @@
+[package]
+name = "idrbm_gensubs"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.102"
+bumpalo = { version = "3.20.2", features = ["boxed"] }
+clap = { version = "4.6.0", features = ["derive"] }
+idrbm_core = { version = "0.1.0", path = "../idrbm_core" }
