@@ -10,13 +10,13 @@ use hashbrown::HashMap;
 
 use crate::datatypes::{VariantCsvRecord, Variants, aa_canonical_str};
 /// Read a [`Variants`] from a variant sequences CSV at `path`.
-/// 
+///
 /// These files contain the columns:
 /// 1. ProteinID
 /// 2. RegionID
 /// 3. VariantID
 /// 4. Variant sequence
-/// 
+///
 /// All strings and arrays are allocated inside the given arena.
 pub fn read_variants<'a>(path: &Path, arena: &'a Bump) -> Result<Variants<'a>, Error> {
     let contents = std::fs::read(path)?;
@@ -24,19 +24,24 @@ pub fn read_variants<'a>(path: &Path, arena: &'a Bump) -> Result<Variants<'a>, E
     let mut record = StringRecord::new();
 
     let local_arena = Bump::new();
-    let mut local_data = ManuallyDrop::new(HashMap::new_in(&local_arena));
+    let mut local_mapping = ManuallyDrop::new(HashMap::new_in(&local_arena));
+    let mut local_order = Vec::new_in(&local_arena);
     while let Some(notification) = reader.next(&mut record) {
         let record = notification?;
-        let protein_group = match local_data.get_mut(record.protein_id) {
-            Some(group) => {
-                group
-            },
+        let protein_group = match local_mapping.get_mut(record.protein_id) {
+            Some(group) => group,
             None => {
                 let protein_id = &*arena.alloc_str(record.protein_id);
-                local_data.try_insert(protein_id, Vec::new_in(&local_arena)).unwrap()
+                local_order.push(protein_id);
+                local_mapping
+                    .try_insert(protein_id, Vec::new_in(&local_arena))
+                    .unwrap()
             }
         };
-        let (_, region_group) = match protein_group.iter_mut().find(|(region_id, _)| *region_id == record.region_id) {
+        let (_, region_group) = match protein_group
+            .iter_mut()
+            .find(|(region_id, _)| *region_id == record.region_id)
+        {
             Some(group) => group,
             None => {
                 let region_id = &*arena.alloc_str(record.region_id);
@@ -45,17 +50,28 @@ pub fn read_variants<'a>(path: &Path, arena: &'a Bump) -> Result<Variants<'a>, E
             }
         };
         let variant_id = &*arena.alloc_str(record.variant_id);
-        let variant_sequence = aa_canonical_str::new(arena.alloc_slice_copy(record.variant_sequence.as_slice()));
+        let variant_sequence =
+            aa_canonical_str::new(arena.alloc_slice_copy(record.variant_sequence.as_slice()));
         region_group.push((variant_id, variant_sequence));
     }
-    let mut data = HashMap::with_capacity_in(local_data.len(), arena);
-    for (protein_id, protein_group) in local_data.iter() {
+    let mut mapping = HashMap::with_capacity_in(local_mapping.len(), arena);
+    for (protein_id, protein_group) in local_mapping.iter() {
         // SAFETY: keys are unique because they come from a map
-        unsafe { data.insert_unique_unchecked(*protein_id, &*arena.alloc_slice_fill_iter(protein_group.iter().map(|(region_id, region_group)| {
-            (*region_id, &*arena.alloc_slice_copy(&region_group))
-        }))) };
+        unsafe {
+            mapping.insert_unique_unchecked(
+                *protein_id,
+                &*arena.alloc_slice_fill_iter(protein_group.iter().map(
+                    |(region_id, region_group)| {
+                        (*region_id, &*arena.alloc_slice_copy(&region_group))
+                    },
+                )),
+            )
+        };
     }
-    Ok(data)
+    Ok(Variants {
+        mapping,
+        order: arena.alloc_slice_copy(&local_order),
+    })
 }
 /// Parser for variant sequence CSV files.
 ///
@@ -74,10 +90,10 @@ impl<'a> ParseVariants<'a> {
     }
     /// Read the next line into the given
     /// `buf` and attempt to parse it as a [`VariantCsvRecord`].
-    /// 
+    ///
     /// Almost like an iterator but requires a `buf` to hold
     /// the result.
-    /// 
+    ///
     /// Fails if the variant sequence is not canonical aminoacids.
     pub fn next<'b>(
         &mut self,
@@ -93,14 +109,14 @@ impl<'a> ParseVariants<'a> {
             if buf.len() == 0 {
                 continue;
             }
-            return Some(self.parse_one_line(buf))
+            return Some(self.parse_one_line(buf));
         }
     }
     /// Given a [`StringRecord`] that has been populated,
     /// attempt to parse a [`VariantCsvRecord`] from it.
-    /// 
+    ///
     /// Fails if the variant sequence is not canonical aminoacids.
-    /// 
+    ///
     /// Helper for [`ParseVariants::next`].
     fn parse_one_line<'b>(&self, record: &'b StringRecord) -> Result<VariantCsvRecord<'b>, Error> {
         if record.len() != 4 {
@@ -111,21 +127,20 @@ impl<'a> ParseVariants<'a> {
             ));
         }
         let [protein_id, region_id, variant_id] = [0, 1, 2].map(|i| record.get(i).unwrap());
-        let variant_sequence = aa_canonical_str::from_bytes(record.get(3).unwrap().as_bytes()).map_err(|e| {
-            error(&e, record, self.data)
-        })?;
+        let variant_sequence = aa_canonical_str::from_bytes(record.get(3).unwrap().as_bytes())
+            .map_err(|e| error(&e, record, self.data))?;
         Ok(VariantCsvRecord {
             protein_id,
             region_id,
             variant_id,
-            variant_sequence
+            variant_sequence,
         })
     }
 }
 
 /// Add the line number and original line to the error
 /// given by `reason`.
-/// 
+///
 /// Helper for [`ParseVariants::parse_one_line`].
 fn error(reason: &dyn std::fmt::Display, record: &StringRecord, data: &[u8]) -> Error {
     let position = record

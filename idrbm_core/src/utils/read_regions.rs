@@ -23,27 +23,32 @@ pub fn read_regions<'a>(path: &Path, arena: &'a Bump) -> Result<Regions<'a>, Err
     let mut record = StringRecord::new();
 
     let local_arena = Bump::new();
-    let mut local_data = ManuallyDrop::new(HashMap::new_in(&local_arena));
+    let mut local_mapping = ManuallyDrop::new(HashMap::new_in(&local_arena));
+    let mut local_order = Vec::new_in(&local_arena);
     while let Some(notification) = reader.next(&mut record) {
         let record = notification?;
-        let group = match local_data.get_mut(record.protein_id) {
+        let group = match local_mapping.get_mut(record.protein_id) {
             Some(group) => {
                 group
             },
             None => {
                 let protein_id = &*arena.alloc_str(record.protein_id);
-                local_data.try_insert(protein_id, Vec::new_in(&local_arena)).unwrap()
+                local_order.push(protein_id);
+                local_mapping.try_insert(protein_id, Vec::new_in(&local_arena)).unwrap()
             }
         };
         let region_id = &*arena.alloc_str(record.region_id);
         group.push((region_id, record.region))
     }
-    let mut data = HashMap::with_capacity_in(local_data.len(), arena);
-    for (protein_id, group) in local_data.iter() {
+    let mut mapping = HashMap::with_capacity_in(local_mapping.len(), arena);
+    for (protein_id, group) in local_mapping.iter() {
         // SAFETY: keys are unique because they come from a map
-        unsafe { data.insert_unique_unchecked(*protein_id, &*arena.alloc_slice_copy(&group)) };
+        unsafe { mapping.insert_unique_unchecked(*protein_id, &*arena.alloc_slice_copy(&group)) };
     }
-    Ok(data)
+    Ok(Regions {
+        mapping,
+        order: arena.alloc_slice_copy(&local_order)
+    })
 }
 /// Parser for regions CSV files.
 /// 

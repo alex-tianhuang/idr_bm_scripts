@@ -41,7 +41,7 @@ fn main() -> anyhow::Result<()> {
     let mut header_writer = CompoundHeaderWriter::new();
     for (protein_id, protein_group) in variants {
         let whole_sequence = *sequences.get(protein_id).ok_or_else(|| Error::msg(format!("could not find whole protein sequence for protein {}", protein_id)))?;
-        let regions = *regions.get(protein_id).ok_or_else(|| Error::msg(format!("could not find region bounds for protein {}", protein_id)))?;
+        let regions = regions.get(protein_id).ok_or_else(|| Error::msg(format!("could not find region bounds for protein {}", protein_id)))?;
         for &(region_id, region_group) in protein_group {
             let (_, region) = regions.iter().find(|rgn| rgn.0 == region_id).ok_or_else(|| Error::msg(format!("could not find region bounds for protein {}, region {}", protein_id, region_id)))?;
             if !region.is_in_bounds_of(whole_sequence) {
