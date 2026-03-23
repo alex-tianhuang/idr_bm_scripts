@@ -130,7 +130,7 @@ pub fn read_variant_csv_template<'a, T: Debug + Copy>(
     if let Err(e) = assert_n_cols(n_cols) {
         return Err(e);
     }
-    if n_cols < 2 {
+    if n_cols < 3 {
         panic!("cannot use read_variant_csv_template with less than three columns")
     }
     let mut record = StringRecord::new();
