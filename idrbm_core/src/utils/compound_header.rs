@@ -22,6 +22,6 @@ impl<const N: usize> CompoundHeaderWriter<N> {
             .from_writer(std::mem::take(&mut self.buf));
         writer.write_record(parts).expect(EXPECT_MSG);
         self.buf = writer.into_inner().expect(EXPECT_MSG);
-        str::from_utf8(&self.buf).expect("unexpected non-UTF8 made by joining UTF-8 parts")
+        str::from_utf8(self.buf.trim_ascii_end()).expect("unexpected non-UTF8 made by joining UTF-8 parts")
     }
 }
