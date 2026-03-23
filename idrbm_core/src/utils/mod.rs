@@ -1,11 +1,9 @@
-mod read_regions;
-mod read_variants;
 mod read_fasta;
 mod read_to_end;
+mod read_csvs;
 mod compound_header;
 pub use compound_header::{CompoundHeaderWriter, CompoundHeaderReader};
-pub use read_regions::read_regions;
-pub use read_variants::read_variants;
+pub use read_csvs::{read_regions, read_variants, read_region_csv_template, read_variant_csv_template};
 pub use read_fasta::{read_fasta, read_fasta_to_map};
 pub use read_to_end::{read_file, read_to_end};
 

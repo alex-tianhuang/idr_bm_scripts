@@ -1,5 +1,5 @@
 //! Submodule of IDR benchmarking datatypes.
 mod grouped;
-mod records;
-pub use grouped::{Regions, Variants, Grouped};
-pub use records::{RegionBounds, RegionCsvRecord, VariantCsvRecord};
+mod regions;
+pub use regions::RegionBounds;
+pub use grouped::{Grouped, RegionMap, VariantMap};

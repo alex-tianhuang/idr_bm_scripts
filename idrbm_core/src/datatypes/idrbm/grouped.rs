@@ -1,7 +1,6 @@
 //! Defines [`Grouped`], [`Regions`], and [`Variants`],
 //! for grouping data by protein ID without many independent
 //! string allocations.
-use crate::datatypes::{RegionBounds, aa_canonical_str};
 use bumpalo::Bump;
 use hashbrown::DefaultHashBuilder;
 /// Collections of stuff, grouped by protein ID.
@@ -16,11 +15,11 @@ pub struct Grouped<'a, T> {
         hashbrown::HashMap<&'a str, T, DefaultHashBuilder, &'a Bump>,
     pub(crate) order: &'a [&'a str]
 }
-/// A collection of regions, grouped by protein ID.
-pub type Regions<'a> = Grouped<'a, &'a [(&'a str, RegionBounds)]>;
+/// A collection grouped by protein ID and region ID.
+pub type RegionMap<'a, T> = Grouped<'a, &'a [(&'a str, T)]>;
 
-/// A collection of variant sequences, grouped by protein ID and region ID.
-pub type Variants<'a>  = Grouped<'a, &'a [(&'a str, &'a [(&'a str, &'a aa_canonical_str)])]>;
+/// A collection grouped by protein ID, region ID, and variant ID.
+pub type VariantMap<'a, T>  = Grouped<'a, &'a [(&'a str, &'a [(&'a str, T)])]>;
 
 impl<'a, T: Copy> Grouped<'a, T> {
     /// Make a new [`Grouped`] from a map and order.
