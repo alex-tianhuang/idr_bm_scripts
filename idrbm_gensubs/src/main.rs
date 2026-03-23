@@ -1,4 +1,4 @@
-use std::{io::Write, fs::File, path::PathBuf};
+use std::{fs::File, io::{BufWriter, Write}, path::PathBuf};
 use anyhow::Error;
 use bumpalo::{Bump, boxed::Box};
 use clap::Parser;
@@ -37,7 +37,8 @@ fn main() -> anyhow::Result<()> {
     let regions = read_regions(&regions, &arena)?;
     let variants = read_variants(&variants, &arena)?;
 
-    let mut file = File::create(&output_file)?;
+    let file = File::create(&output_file)?;
+    let mut wtr = BufWriter::new(file);
     let mut header_writer = CompoundHeaderWriter::new();
     for (protein_id, protein_group) in variants {
         let whole_sequence = *sequences.get(protein_id).ok_or_else(|| Error::msg(format!("could not find whole protein sequence for protein {}", protein_id)))?;
@@ -52,7 +53,7 @@ fn main() -> anyhow::Result<()> {
             let suffix = whole_sequence[region.stop()..].as_str();
             for &(variant_id, variant_sequence) in region_group {
                 let compound_header = header_writer.construct_header([protein_id, region_id, variant_id]);
-                write!(file, ">{}\n{}{}{}\n", compound_header, prefix, variant_sequence.as_str(), suffix)?;
+                write!(wtr, ">{}\n{}{}{}\n", compound_header, prefix, variant_sequence.as_str(), suffix)?;
             }
         }
     }
