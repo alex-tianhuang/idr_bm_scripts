@@ -28,6 +28,7 @@ impl<'a, T: Copy> Grouped<'a, T> {
     /// Failure to do this results in runtime panics
     /// when iterating over [`Grouped`].
     pub fn new(order: &'a [&'a str], mapping: hashbrown::HashMap<&'a str, T, DefaultHashBuilder, &'a Bump>) -> Self {
+        assert_eq!(order.len(), mapping.len());
         Self { mapping, order }
     }
     /// Get an entry from the inner mapping.
