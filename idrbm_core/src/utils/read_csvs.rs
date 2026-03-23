@@ -206,7 +206,10 @@ fn add_context(reason: &dyn std::fmt::Display, record: &StringRecord, contents: 
 }
 /// Asserts that the given number of columns is `N`
 /// or fails otherwise.
-fn assert_n_cols<const N: usize>(n_cols: usize) -> Result<(), Error> {
+/// 
+/// Helper for users of [`read_region_csv_template`]
+/// and [`read_variant_csv_template`].
+pub fn assert_n_cols<const N: usize>(n_cols: usize) -> Result<(), Error> {
     if n_cols == N {
         Ok(())
     } else {
