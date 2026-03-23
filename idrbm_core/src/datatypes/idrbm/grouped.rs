@@ -35,6 +35,10 @@ impl<'a, T: Copy> Grouped<'a, T> {
     pub fn get(&self, protein_id: &str) -> Option<T> {
         self.mapping.get(protein_id).copied()
     }
+    /// Call `contains_key` on the inner mapping.
+    pub fn contains_key(&self, protein_id: &str) -> bool {
+        self.mapping.contains_key(protein_id)
+    }
 }
 impl<'a, T: Copy> IntoIterator for Grouped<'a, T> {
     type IntoIter = GroupedIter<'a, T>;

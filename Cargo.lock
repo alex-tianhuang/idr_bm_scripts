@@ -738,6 +738,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "idrbm_filtrgns"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "bumpalo",
+ "clap",
+ "idrbm_core",
+]
+
+[[package]]
 name = "idrbm_filtzsc"
 version = "0.1.0"
 dependencies = [
