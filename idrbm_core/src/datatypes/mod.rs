@@ -6,4 +6,4 @@
 mod sequences;
 mod idrbm;
 pub use sequences::{AAIndex, AAMap, AMINOACIDS, Aminoacid, FastaEntry, aa_canonical_str};
-pub use idrbm::{RegionCsvRecord, VariantCsvRecord, RegionBounds, Regions, Variants};
+pub use idrbm::{RegionCsvRecord, VariantCsvRecord, RegionBounds, Regions, Variants, Grouped};

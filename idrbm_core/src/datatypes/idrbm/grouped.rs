@@ -1,55 +1,56 @@
+//! Defines [`Grouped`], [`Regions`], and [`Variants`],
+//! for grouping data by protein ID without many independent
+//! string allocations.
 use crate::datatypes::{RegionBounds, aa_canonical_str};
 use bumpalo::Bump;
 use hashbrown::DefaultHashBuilder;
 
+/// Collections of stuff, grouped by protein ID.
+/// 
+/// `order` must contain all keys of `mapping`.
+/// Failure to do this results in runtime panics
+/// when iterating over [`Grouped`].
+pub struct Grouped<'a, T> {
+    pub(crate) mapping: 
+        hashbrown::HashMap<&'a str, T, DefaultHashBuilder, &'a Bump>,
+    pub(crate) order: &'a [&'a str]
+}
 /// A collection of regions, grouped by protein ID.
-pub struct Regions<'a> {
-    pub(crate) mapping:
-        hashbrown::HashMap<&'a str, &'a [(&'a str, RegionBounds)], DefaultHashBuilder, &'a Bump>,
-    pub(crate) order: &'a [&'a str],
-}
+pub type Regions<'a> = Grouped<'a, &'a [(&'a str, RegionBounds)]>;
+
 /// A collection of variant sequences, grouped by protein ID and region ID.
-pub struct Variants<'a> {
-    pub(crate) mapping: hashbrown::HashMap<
-        &'a str,
-        &'a [(&'a str, &'a [(&'a str, &'a aa_canonical_str)])],
-        DefaultHashBuilder,
-        &'a Bump,
-    >,
-    pub(crate) order: &'a [&'a str],
-}
-impl<'a> Regions<'a> {
+pub type Variants<'a>  = Grouped<'a, &'a [(&'a str, &'a [(&'a str, &'a aa_canonical_str)])]>;
+
+impl<'a, T: Copy> Grouped<'a, T> {
+    /// Make a new [`Grouped`] from a map and order.
+    /// 
+    /// `order` must contain all keys of `mapping`.
+    /// Failure to do this results in runtime panics
+    /// when iterating over [`Grouped`].
+    pub fn new(order: &'a [&'a str], mapping: hashbrown::HashMap<&'a str, T, DefaultHashBuilder, &'a Bump>) -> Self {
+        Self { mapping, order }
+    }
     /// Get an entry from the inner mapping.
-    pub fn get(&self, protein_id: &str) -> Option<&'a [(&'a str, RegionBounds)]> {
+    pub fn get(&self, protein_id: &str) -> Option<T> {
         self.mapping.get(protein_id).copied()
     }
 }
-impl<'a> IntoIterator for Regions<'a> {
-    type IntoIter = OrderedMapIter<'a, &'a [(&'a str, RegionBounds)]>;
-    type Item = (&'a str, &'a [(&'a str, RegionBounds)]);
+impl<'a, T: Copy> IntoIterator for Grouped<'a, T> {
+    type IntoIter = GroupedIter<'a, T>;
+    type Item = (&'a str, T);
     fn into_iter(self) -> Self::IntoIter {
-        OrderedMapIter {
+        GroupedIter {
             iter: self.order.iter(),
             mapping: self.mapping
         }
     }
 }
-impl<'a> IntoIterator for Variants<'a> {
-    type IntoIter = OrderedMapIter<'a, &'a [(&'a str, &'a [(&'a str, &'a aa_canonical_str)])]>;
-    type Item = (&'a str, &'a [(&'a str, &'a [(&'a str, &'a aa_canonical_str)])]);
-    fn into_iter(self) -> Self::IntoIter {
-        OrderedMapIter {
-            iter: self.order.iter(),
-            mapping: self.mapping
-        }
-    }
-}
-pub struct OrderedMapIter<'a, T> {
+pub struct GroupedIter<'a, T> {
     iter: std::slice::Iter<'a, &'a str>,
     mapping:
         hashbrown::HashMap<&'a str, T, DefaultHashBuilder, &'a Bump>,
 }
-impl<'a, T: Copy> Iterator for OrderedMapIter<'a, T> {
+impl<'a, T: Copy> Iterator for GroupedIter<'a, T> {
     type Item = (&'a str, T);
     fn next(&mut self) -> Option<Self::Item> {
         let protein_id = *self.iter.next()?;
