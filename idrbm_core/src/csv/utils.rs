@@ -124,7 +124,7 @@ pub fn collect_l3<'a, 'b, T: Debug>(
     );
 }
 pub fn finish_l2<'a, T, R>(
-    finish_t: impl Fn(&T) -> R,
+    finish_items: impl Fn(&T) -> R,
     local_mapping: HashMap<&'a str, Vec<'_, (&'a str, T)>, DefaultHashBuilder, &Bump>,
     local_order: Vec<'_, &'a str>,
     arena: &'a Bump,
@@ -138,7 +138,7 @@ pub fn finish_l2<'a, T, R>(
                 &*arena.alloc_slice_fill_iter(
                     protein_group
                         .iter()
-                        .map(|(region_id, region_group)| (*region_id, finish_t(region_group))),
+                        .map(|(region_id, region_group)| (*region_id, finish_items(region_group))),
                 ),
             )
         };
@@ -152,7 +152,7 @@ pub fn finish_l2<'a, T, R>(
     ret
 }
 pub fn finish_l3<'a, T, R>(
-    finish_t: impl Fn(&T) -> R,
+    finish_items: impl Fn(&T) -> R,
     local_mapping: HashMap<
         &'a str,
         Vec<'_, (&'a str, Vec<'_, (&'a str, T)>)>,
@@ -167,7 +167,7 @@ pub fn finish_l3<'a, T, R>(
             &*arena.alloc_slice_fill_iter(
                 region_group
                     .iter()
-                    .map(|(variant_id, variant_group)| (*variant_id, finish_t(variant_group))),
+                    .map(|(variant_id, variant_group)| (*variant_id, finish_items(variant_group))),
             )
         },
         local_mapping,
