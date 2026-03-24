@@ -1,7 +1,10 @@
 //! Module of csv reading tools.
 //!
-//! I read a lot of CSVs labelled by regions and variants
-//! in my benchmarking code.
+//! With little idea of how to organize this module
+//! but a lot of CSV code with different deserialization styles,
+//! [`CsvReader`] is the extremely general/difficult to document
+//! utility and [`read_regions`] / [`read_variants`] are the ones
+//! I will use 90% of the time.
 mod compound_header;
 mod duplicate_rule;
 pub mod utils;
@@ -13,7 +16,7 @@ use crate::{
 use anyhow::Error;
 use bumpalo::{Bump, collections::Vec};
 pub use duplicate_rule::DuplicateRule;
-use hashbrown::HashMap;
+use hashbrown::{DefaultHashBuilder, HashMap};
 use std::{fmt::Debug, path::Path};
 /// A sentinel value for [`CsvReader`]'s generic `N`.
 const NO_UNPACKER: usize = 0;
@@ -112,6 +115,44 @@ impl<'a, 'b, T> CsvReader<'a, 'b, T> {
             n_cols,
             unpacker: Some(CompoundHeaderReader::new()),
         }
+    }
+    /// Collect and deserialize rows by
+    /// the first column into an unordered hashmap.
+    pub fn collect_shallow_map(
+        self,
+        contents: &[u8],
+        duplicate_rule: DuplicateRule,
+        arena: &'a Bump,
+    ) -> Result<HashMap<&'a str, T, DefaultHashBuilder, &'a Bump>, Error> {
+        let mut reader = csv::Reader::from_reader(contents);
+        let mut record = csv::StringRecord::new();
+        let Self {
+            deserializer,
+            n_cols,
+            ..
+        } = self;
+        debug_assert!(
+            n_cols >= 2,
+            "should not read regions file with less than 2 expected columns"
+        );
+        check_at_least_n_cols(reader.headers()?.len(), n_cols)?;
+        let mut mapping = HashMap::new_in(arena);
+        while reader.read_record(&mut record)? {
+            let protein_id = record.get(0).unwrap();
+            let item = deserializer(&record, arena)
+                .map_err(|reason| add_context(&reason, &record, contents))?;
+            let k;
+            if let Some((&protein_id, _)) = mapping.get_key_value(protein_id) {
+                if matches!(duplicate_rule, DuplicateRule::FirstWins) {
+                    continue;
+                }
+                k = protein_id;
+            } else {
+                k = &*arena.alloc_str(protein_id);
+            }
+            let _ = mapping.insert(k, item);
+        }
+        Ok(mapping)
     }
     /// Collect regions grouped by protein ID.
     ///
@@ -212,15 +253,16 @@ impl<'a, 'b, V> CsvReader<'a, 'b, V, 3> {
     // I digress, I'm not sure how to explain what this does
     // other than it's a fold operation over region-labelled data
     // that is not unique.
-    pub fn fold_regions_from_variants_with_compound_id<T>(
+    pub fn fold_regions_from_variants_with_compound_id<Q, T>(
         self,
         contents: &[u8],
         arena: &'a Bump,
-        default_items: impl Fn() -> T,
-        fold_items: impl Fn(&mut T, V),
+        default_items: impl Fn() -> Q,
+        fold_items: impl Fn(&mut Q, V),
+        finish_items: impl Fn(&Q) -> T,
     ) -> Result<RegionMap<'a, T>, Error>
     where
-        T: Copy + Debug,
+        Q: Copy + Debug,
     {
         let mut reader = csv::Reader::from_reader(contents);
         let mut record = csv::StringRecord::new();
@@ -259,7 +301,7 @@ impl<'a, 'b, V> CsvReader<'a, 'b, V, 3> {
                 arena,
             );
         }
-        Ok(finish_l2(|item| *item, local_mapping, local_order, arena))
+        Ok(finish_l2(finish_items, local_mapping, local_order, arena))
     }
 }
 impl<'a, 'b, T> CsvReader<'a, 'b, T, 3> {
