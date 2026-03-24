@@ -3,7 +3,7 @@ use std::{fs::File, io::{BufWriter, Write}, path::PathBuf};
 use bumpalo::{Bump, boxed::Box};
 use clap::Parser;
 use anyhow::Error;
-use idrbm_core::{box_dyn_in, utils::{read_fasta, read_regions}};
+use idrbm_core::{box_dyn_in, csv::{DuplicateRule, read_regions}, utils::read_fasta};
 /// Program for filtering a FASTA file
 /// for sequences with regions in the given regions file.
 #[derive(Parser)]
@@ -26,7 +26,7 @@ fn main() -> Result<(), Error>{
     let Args { sequences, regions, output_file, log_errs_to } = Args::try_parse()?;
     let arena = Bump::new();
     let sequences = read_fasta(&sequences, &arena, &mut * alloc_error_handler(log_errs_to, &arena)?)?;
-    let regions = read_regions(&regions, &arena)?;
+    let regions = read_regions(&regions, DuplicateRule::LastWins, &arena)?;
     let file = File::create(&output_file)?;
     let mut writer = BufWriter::new(file);
     for entry in sequences {

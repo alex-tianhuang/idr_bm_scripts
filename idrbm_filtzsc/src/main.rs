@@ -2,8 +2,8 @@ use anyhow::Error;
 use bumpalo::Bump;
 use clap::Parser;
 use idrbm_core::{
+    csv::{CsvReader, DuplicateRule, read_regions},
     datatypes::RegionMap,
-    utils::{assert_n_cols, read_region_csv_template, read_regions},
 };
 use std::path::{Path, PathBuf};
 /// Program for computing some zscores by scaling wild-type data
@@ -35,7 +35,7 @@ fn main() -> Result<(), Error> {
         return Err(Error::msg("z-score threshold must be positive"));
     }
     let arena = Bump::new();
-    let regions = read_regions(&regions, &arena)?;
+    let regions = read_regions(&regions, DuplicateRule::LastWins, &arena)?;
     let zscores = read_zscores(&zscores, &arena)?;
 
     let mut writer = csv::Writer::from_path(&output_file)?;
@@ -73,13 +73,10 @@ fn main() -> Result<(), Error> {
 }
 /// Load a file of region-labelled z-scores.
 fn read_zscores<'a>(path: &Path, arena: &'a Bump) -> Result<RegionMap<'a, f64>, Error> {
-    read_region_csv_template(
-        path,
-        arena,
-        |record| {
-            let value = record.get(2).unwrap().parse::<f64>()?;
-            Ok(value)
-        },
-        assert_n_cols::<3>,
-    )
+    let contents = std::fs::read(path)?;
+    CsvReader::new_with_at_least_n_cols::<3>(&|record, _| {
+        let value = record.get(2).unwrap().parse::<f64>()?;
+        Ok(value)
+    })
+    .collect_regions(&contents, DuplicateRule::LastWins, arena)
 }

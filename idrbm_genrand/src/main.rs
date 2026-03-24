@@ -1,6 +1,6 @@
 use bumpalo::Bump;
 use clap::Parser;
-use idrbm_core::{datatypes::AMINOACIDS, utils::read_regions};
+use idrbm_core::{csv::{DuplicateRule, read_regions}, datatypes::AMINOACIDS};
 use rand::{
     RngExt, SeedableRng,
     distr::slice::Choose,
@@ -27,7 +27,7 @@ fn main() -> anyhow::Result<()> {
         n,
     } = Args::try_parse()?;
     let arena = Bump::new();
-    let regions = read_regions(&input_file, &arena)?;
+    let regions = read_regions(&input_file, DuplicateRule::LastWins, &arena)?;
 
     let mut writer = csv::Writer::from_path(&output_file)?;
     writer.write_record(&["ProteinID", "RegionID", "VariantID", "Sequence"])?;
